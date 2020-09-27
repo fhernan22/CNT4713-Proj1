@@ -48,13 +48,6 @@ def main():
                     except socket.error:
                         dataPort += 1
 
-                # sock.send('PASV\r\n')
-                # response = sock.recv(1024)
-                # print(response)
-
-                # availabePorts = response[response.find('(') + 1: len(response) - 4].split(",")
-                # print(availabePorts)
-
                 splitAddress = str.split(addr, ".")
                 dataPortOne = str(int(hex(dataPort)[2:4], 16))
                 dataPortTwo = str(int(hex(dataPort)[4:6], 16))
@@ -85,12 +78,127 @@ def main():
                 print(response)
                 dataSocket.close()
 
+            elif command[0:3].upper() == 'PUT':
+                dataPort += 1
+
+                isPortAvailable = False 
+
+                while isPortAvailable == False:
+                    try:
+                        dataSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
+                        dataSocket.bind(('',dataPort))
+                        isPortAvailable = True
+
+                    except socket.error:
+                        dataPort += 1
+
+                splitAddress = str.split(addr, ".")
+                dataPortOne = str(int(hex(dataPort)[2:4], 16))
+                dataPortTwo = str(int(hex(dataPort)[4:6], 16))
+
+                message = 'PORT ' + splitAddress[0] \
+                                + "," + splitAddress[1] + "," + splitAddress[2] \
+                                + "," + splitAddress[3] + "," \
+                                + dataPortOne + ',' + dataPortTwo + '\r\n'
+
+                sock.send(message)
+                response = sock.recv(1024)
+                print(response)
+
+                message = 'STOR ' + command[4:] + '\r\n'
+                sock.send(message)
+
+                dataSocket.listen(1)
+                dataConn = dataSocket.accept()[0]
+
+                response = sock.recv(1024)
+                print(response)
+
+                with open(command[4:], 'rb') as file:
+                    segment = file.read(1024)
+
+                    while segment: 
+                        dataConn.send(segment) 
+                        segment = file.read(1024)
+
+                dataConn.close()
+                response = sock.recv(1024)
+                print(response)
+                dataSocket.close()
+
+            elif command[0:3].upper() == 'GET':
+                dataPort += 1
+
+                isPortAvailable = False 
+
+                while isPortAvailable == False:
+                    try:
+                        dataSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
+                        dataSocket.bind(('',dataPort))
+                        isPortAvailable = True
+
+                    except socket.error:
+                        dataPort += 1
+
+                splitAddress = str.split(addr, ".")
+                dataPortOne = str(int(hex(dataPort)[2:4], 16))
+                dataPortTwo = str(int(hex(dataPort)[4:6], 16))
+
+                message = 'PORT ' + splitAddress[0] \
+                                + "," + splitAddress[1] + "," + splitAddress[2] \
+                                + "," + splitAddress[3] + "," \
+                                + dataPortOne + ',' + dataPortTwo + '\r\n'
+
+                sock.send(message)
+                response = sock.recv(1024)
+                print(response)
+
+                message = 'RETR ' + command[4:] + '\r\n'
+                sock.send(message)
+
+                dataSocket.listen(1)
+                dataConn = dataSocket.accept()[0]
+
+                response = sock.recv(1024)
+                print(response)
+
+                incomingFile = dataConn.recv(1024)
+                print(incomingFile)
+
+                with open(command[4:], 'wb') as file:
+                    for line in incomingFile:
+                        file.write(line)
+
+                dataConn.close()
+                response = sock.recv(1024)
+                print(response)
+                dataSocket.close()
+
+            elif command[0:6].upper() == 'DELETE':
+                message = 'DELE ' + command[7:] + '\r\n'
+
+                sock.send(message)
+                
+                response = sock.recv(1024)
+                print(response)
+
+            elif command[0:2].upper() == 'CD':
+                message = 'CWD ' + command[3:] + '\r\n'
+
+                sock.send(message)
+                
+                response = sock.recv(1024)
+                print(response)
+
             elif command.upper() == 'QUIT':
                 sock.send('QUIT\r\n')
                 response = sock.recv(1024)
                 print(response)
                 sock.close()
                 quit()
+
+            else:
+                print("Command not available. Please try again")
                 
 
     except socket.error as e:
